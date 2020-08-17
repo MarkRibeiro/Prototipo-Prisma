@@ -9,6 +9,7 @@ TagManager:
   - Espeto
   - Inimigo
   - Orb
+  - Proibido
   layers:
   - Default
   - TransparentFX

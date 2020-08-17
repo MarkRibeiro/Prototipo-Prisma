@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿//By: Mark Ribeiro
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,7 +21,6 @@ public class Inimigo : MonoBehaviour
         if (tempoDoTiro*i - Time.time <= 0f)
         {
             Instantiate(tiro, transform.position, Quaternion.identity);
-            //Debug.Log(i);
             i = i + 1;
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿//By: Mark Ribeiro
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,10 +18,12 @@ public class PlayerMove : MonoBehaviour
     public bool orbSegurada;
     public bool orbAtirada;
     private int virado;
-    private int viradoAoAtirar;
+    private bool noTeto;
+    //private int viradoAoAtirar;
     private float posicaoInicialX;
     private float posicaoInicialY;
     private float posicaoInicialZ;
+    private float ultimaVezAndada;
     public Orb orb;
 
     // Start is called before the first frame update
@@ -30,15 +33,19 @@ public class PlayerMove : MonoBehaviour
         orbColada = false;
         orbSegurada = false;
         orbAtirada = false;
+        noTeto = false;
         virado = 1;
         posicaoInicialX = transform.position.x;
         posicaoInicialY = transform.position.y;
         posicaoInicialZ = transform.position.z;
+        ultimaVezAndada = Time.time;
     }
 
     // Update is called once per frame
     void Update()
     {
+        float intervaloUltimaVezAndada = Time.time - ultimaVezAndada;
+
         animator.SetFloat("Speed", Mathf.Abs(meuRB.velocity.x));
         if (Mathf.Abs(meuRB.velocity.y) > 0) {
             animator.SetBool("IsJumping", true);
@@ -46,21 +53,24 @@ public class PlayerMove : MonoBehaviour
             animator.SetBool("IsJumping", false);
         }
 
-        if(meuRB.velocity.x < 0) {
+        noTeto = Physics2D.gravity.y > 0;
+        if (meuRB.velocity.x < 0) {
             if(Physics2D.gravity.y > 0) { 
                 meuSR.flipX = false;
+                virado = 1;
             } else {
                 meuSR.flipX = true;
+                virado = -1;
             }
-            virado = -1;
         }
         if (meuRB.velocity.x > 0) {
              if(Physics2D.gravity.y > 0) { 
                 meuSR.flipX = true;
+                virado = -1;
             } else {
                 meuSR.flipX = false;
+                virado = 1;
             }
-            virado = 1;
         }
 
         if(Physics2D.gravity.x == 0 && Physics2D.gravity.y < 0) { //CHAO 
@@ -156,12 +166,12 @@ public class PlayerMove : MonoBehaviour
             orbSegurada = true;
             orb.transform.parent = transform;
             orb.meuRB.gravityScale = 0;
-            //orb.meuRB.isKinematic = true;
+            orb.meuCC.enabled = false;
         }
 
         if(orbSegurada == true) {
             orb.meuRB.isKinematic = true;
-            orb.transform.position = new Vector3(transform.position.x + 0.5f * virado, transform.position.y, 0f);
+            orb.transform.localPosition = new Vector3(0.5f * virado, 0f, 0f);
         }
 
         if (Input.GetButtonDown("Fire2") == true && orbSegurada == true) //lança orb
@@ -173,39 +183,36 @@ public class PlayerMove : MonoBehaviour
             transform.eulerAngles = new Vector3(0, 0, 0);
             meuRB.velocity = new Vector3(0f, 0f, 0f);
             Physics2D.gravity = new Vector2(0f, -9.81f);
-            //orb.meuRB.velocity = new Vector3(velocidadeAndar * 30, orb.meuRB.velocity.y, 0f);
             orbAtirada = true;
             orb.emMovimento = true;
-            viradoAoAtirar = virado;
-            //orb.transform.position += new Vector3(velocidadeAndar, 0f, 0f);
         }
 
         if (Input.GetButtonUp("Fire3") == true) {
             orb.meuRB.isKinematic = false;
+            orb.meuCC.enabled = true;
             orbSegurada = false;
             orb.meuRB.gravityScale = 1;
             orb.transform.parent = null;
-            //orb.meuRB.isKinematic = false;
             transform.eulerAngles = new Vector3(0, 0, 0);
             meuRB.velocity = new Vector3(0f, 0f, 0f);
             Physics2D.gravity = new Vector2(0f, -9.81f);
         }
 
-        if(orbAtirada == true) {
+        if (orbAtirada == true ) {
             orb.meuRB.isKinematic = false;
-            orb.transform.position += new Vector3(0.1f* viradoAoAtirar, 0f, 0f);
+            orb.meuCC.enabled = true;
+            orb.meuRB.constraints = RigidbodyConstraints2D.None;
+            if(orb.meuRB.velocity == new Vector2(0f, 0f)) { 
+                orb.meuRB.AddForce(new Vector2(17f * virado * (noTeto==true ? -1 : 1), 0), ForceMode2D.Impulse);
+            }
+            ultimaVezAndada = Time.time;
         }
 
         if(orb.emMovimento == false)
         {
             orbAtirada = false;
+            orb.meuRB.constraints = RigidbodyConstraints2D.FreezePositionX;
         }
-
-        /*
-        if (Input.GetButtonDown("Jump") && puloCont < 2){
-            meuRB.velocity = new Vector3(meuRB.velocity.x, velocidadePular, 0f);
-            puloCont = puloCont + 1;
-        }*/
 
     }
     private void OnTriggerEnter2D(Collider2D other)
@@ -223,7 +230,16 @@ public class PlayerMove : MonoBehaviour
             orbColada = true;
         }
 
-        if (other.tag != "Orb")
+        if(other.tag == "Proibido")
+        {
+            Physics2D.gravity = new Vector2(0f, -9.81f);
+            transform.eulerAngles = new Vector3(0, 0, 0);
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.tag == "Orb")
         {
             orbColada = false;
         }
